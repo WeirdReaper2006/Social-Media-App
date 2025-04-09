@@ -1,0 +1,23 @@
+{
+  "files.associations": {
+    "*.erd": "json",
+    "*.vuerd": "json",
+    "ostream": "cpp",
+    "format": "cpp",
+    "vector": "cpp",
+    "xstring": "cpp",
+    "iostream": "cpp",
+    "new": "cpp",
+    "type_traits": "cpp",
+    "string": "cpp",
+    "ios": "cpp",
+    "xutility": "cpp",
+    "exception": "cpp",
+    "memory": "cpp",
+    "iterator": "cpp",
+    "ctime": "cpp"
+  },
+  "C_Cpp.errorSquiggles": "disabled",
+  "editor.formatOnSave": true,
+  "cSpell.customDictionaries": {}
+}
