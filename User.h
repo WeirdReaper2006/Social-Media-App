@@ -18,7 +18,7 @@ public:
 	// Constructor
 	User(int id, string name, string pass, string email);
 	// Destructor
-	virtual ~User();
+	~User();
 
 	// User ID setter
 	void setUserID(int id);

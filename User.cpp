@@ -7,10 +7,10 @@ using namespace std;
 // Constructor
 User::User(int id, string name, string pass, string email)
 {
-	UserID = id;
-	Username = name;
-	Password = pass;
-	Email = email;
+	this->UserID = id;
+	this->Username = name;
+	this->Password = pass;
+	this->Email = email;
 }
 
 // Destructor
@@ -21,45 +21,45 @@ User::~User()
 // User ID setter
 void User::setUserID(int id)
 {
-	UserID = id;
+	this->UserID = id;
 }
 // User ID getter
 int User::getUserID()
 {
-	return UserID;
+	return this->UserID;
 }
 
 // Username setter
 void User::setUsername(string name)
 {
-	Username = name;
+	this->Username = name;
 }
 // Username getter
 string User::getUsername()
 {
-	return Username;
+	return this->Username;
 }
 
 // Password setter
 void User::setPassword(string pass)
 {
-	Password = pass;
+	this->Password = pass;
 }
 // Password getter
 string User::getPassword()
 {
-	return Password;
+	return this->Password;
 }
 
 // Email setter
 void User::setEmail(string email)
 {
-	Email = email;
+	this->Email = email;
 }
 // Email getter
 string User::getEmail()
 {
-	return Email;
+	return this->Email;
 }
 
 // Method to display user information

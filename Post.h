@@ -14,13 +14,42 @@ private:
 	string Content;
 	User *Author;
 	time_t Timestamp;
+	int Likes;
 
 public:
-	Post(int id, string content, User *author) : PostID(id), Content(content), Author(author), Timestamp(time(0)) {}
-	void getTimestamp()
-	{
-		cout << "Timestamp: " << ctime(&Timestamp) << endl;
-	}
+	// Constructor
+	Post(int id, string content, User *author);
+	// Destructor
+	~Post();
+
+	// PostID Setter
+	void setPostID(int id);
+	// PostID Getter
+	int getPostID();
+
+	// Content Setter
+	void setContent(string content);
+	// Content Getter
+	string getContent();
+
+	// Author Setter
+	void setAuthor(User *author);
+	// Author Getter
+	User *getAuthor();
+
+	// Timestamp Setter
+	void setTimestamp(time_t timestamp);
+	// Timestamp Getter
+	char *getTimestamp();
+
+	// Likes Setter
+	void setLikes(int likes);
+	// Likes Getter
+	int getLikes();
+	// Likes Incrementer
+	void incrementLikes();
+	// Likes Decrementer
+	void decrementLikes();
 };
 
 #endif

@@ -19,5 +19,8 @@
   },
   "C_Cpp.errorSquiggles": "disabled",
   "editor.formatOnSave": true,
-  "cSpell.customDictionaries": {}
+  "cSpell.customDictionaries": {},
+  "cSpell.words": [
+    "Incrementer"
+  ]
 }
