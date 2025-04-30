@@ -10,7 +10,7 @@ using namespace std;
 
 int main()
 {
-    User u = User(1, "Rayyan", "Nayyar2006", "rayyanrafique95@gmail.com");
+    User u = User(1, "tempuser", "tempPW", "tempemail@gmail.com");
     Post p = Post(1, "Hello", &u);
     cout << p.getTimestamp();
 }
