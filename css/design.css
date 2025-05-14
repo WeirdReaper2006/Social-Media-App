@@ -575,3 +575,35 @@
         .file-input {
             display: none;
         }
+
+        .friends-list, .users-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .friend-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .friend-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .friend-details {
+            margin-left: 1rem;
+        }
+
+        .friend-username {
+            font-weight: 500;
+        }
+
+        .friend-email {
+            font-size: 0.8rem;
+            color: #777;
+        }
+    
