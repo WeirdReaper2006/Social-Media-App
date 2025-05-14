@@ -1,6 +1,6 @@
-# 🌐 SocialSphere — A Simple Social Media App (C++ + Crow)
+# 🌐 ConnectMe — A Simple Social Media App (C++ + Crow)
 
-SocialSphere is a lightweight social media web app built using C++ for backend logic with the Crow web framework, and HTML/CSS for the frontend. It allows user registration, login, posting content, commenting, friendships, and notifications — all powered by a file-based data system.
+ConnectMe is a lightweight social media web app built using C++ for backend logic with the Crow web framework, and HTML/CSS for the frontend. It allows user registration, login, posting content, commenting, friendships, and notifications — all powered by a file-based data system.
 
 ## 🚀 Features
 
