@@ -17,6 +17,8 @@
             if (!localStorage.getItem('likes')) {
                 localStorage.setItem('likes', JSON.stringify([]));
             }
+            if (!localStorage.getItem('relationships')) {
+                localStorage.setItem('relationships', JSON.stringify([]));
         }
 
         // User Authentication Functions
@@ -224,7 +226,100 @@
                        like.type === type
             );
         }
-
+        // Send friend request (auto-accepted in this implementation)
+        function sendFriendRequest(recipientId) {
+            if (!currentUser) return { success: false, message: 'You must be logged in to send friend requests' };
+            
+            // Check if users exist
+            const users = JSON.parse(localStorage.getItem('users'));
+            const recipient = users.find(user => user.id === recipientId);
+            
+            if (!recipient) {
+                return { success: false, message: 'User not found' };
+            }
+            
+            // Check if already friends
+            const relationships = JSON.parse(localStorage.getItem('relationships'));
+            const existingRelationship = relationships.find(
+                rel => (rel.user1Id === currentUser.id && rel.user2Id === recipientId) || 
+                       (rel.user1Id === recipientId && rel.user2Id === currentUser.id)
+            );
+            
+            if (existingRelationship) {
+                return { success: false, message: 'You are already friends with this user' };
+            }
+            
+            // Create new relationship (auto-accepted)
+            const newRelationship = {
+                id: Date.now().toString(),
+                user1Id: currentUser.id,
+                user2Id: recipientId,
+                createdAt: new Date().toISOString()
+            };
+            
+            relationships.push(newRelationship);
+            localStorage.setItem('relationships', JSON.stringify(relationships));
+            
+            return { 
+                success: true, 
+                message: `You are now friends with ${recipient.username}`,
+                relationship: newRelationship 
+            };
+        }
+        
+        // Remove friend relationship
+        function removeFriend(userId) {
+            if (!currentUser) return { success: false, message: 'You must be logged in' };
+            
+            let relationships = JSON.parse(localStorage.getItem('relationships'));
+            const relationshipToRemove = relationships.find(
+                rel => (rel.user1Id === currentUser.id && rel.user2Id === userId) || 
+                       (rel.user1Id === userId && rel.user2Id === currentUser.id)
+            );
+            
+            if (!relationshipToRemove) {
+                return { success: false, message: 'Friend relationship not found' };
+            }
+            
+            // Remove the relationship
+            relationships = relationships.filter(rel => rel.id !== relationshipToRemove.id);
+            localStorage.setItem('relationships', JSON.stringify(relationships));
+            
+            return { success: true, message: 'Friend removed successfully' };
+        }
+        
+        // Get user's friends
+        function getFriends(userId = currentUser.id) {
+            if (!currentUser) return [];
+            
+            const relationships = JSON.parse(localStorage.getItem('relationships'));
+            const users = JSON.parse(localStorage.getItem('users'));
+            
+            // Find all relationships where the user is involved
+            const userRelationships = relationships.filter(
+                rel => rel.user1Id === userId || rel.user2Id === userId
+            );
+            
+            // Get the friend IDs
+            const friendIds = userRelationships.map(rel => 
+                rel.user1Id === userId ? rel.user2Id : rel.user1Id
+            );
+            
+            // Get the friend objects
+            const friends = users.filter(user => friendIds.includes(user.id));
+            
+            return friends;
+        }
+        
+        // Check if two users are friends
+        function areFriends(user1Id, user2Id) {
+            const relationships = JSON.parse(localStorage.getItem('relationships'));
+            
+            return relationships.some(
+                rel => (rel.user1Id === user1Id && rel.user2Id === user2Id) || 
+                       (rel.user1Id === user2Id && rel.user2Id === user1Id)
+            );
+        }
         // UI Rendering Functions
         function renderNavbar() {
             const navMenu = document.getElementById('navMenu');
@@ -255,6 +350,11 @@
                     <li class="nav-item">
                         <a href="#" class="nav-link" data-page="profile">
                             <i class="fas fa-user"></i> Profile
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" data-page="friends">
+                            <i class="fas fa-user-friends"></i> Friends
                         </a>
                     </li>
                     <li class="nav-item">
@@ -943,7 +1043,127 @@
                 });
             }
         }
-
+        function renderFriendsPage() {
+            const mainContent = document.getElementById('mainContent');
+            
+            // Get all users except current user
+            const users = JSON.parse(localStorage.getItem('users'))
+                .filter(user => user.id !== currentUser.id);
+            
+            // Get current user's friends
+            const friends = getFriends();
+            const friendIds = friends.map(friend => friend.id);
+            
+            mainContent.innerHTML = `
+                <div class="profile container fade-in">
+                    <div class="form-container">
+                        <h2 class="form-title">Your Friends</h2>
+                        <div id="friendsAlert" class="alert hidden"></div>
+                        
+                        <div class="friends-container">
+                            ${friends.length === 0 ? '<p>You have no friends yet. Connect with someone!</p>' : ''}
+                            <ul class="friends-list">
+                                ${friends.map(friend => `
+                                    <li class="friend-item">
+                                        <div class="friend-info">
+                                            <div class="post-avatar">${friend.username.charAt(0).toUpperCase()}</div>
+                                            <div class="friend-details">
+                                                <div class="friend-username">${friend.username}</div>
+                                                <div class="friend-email">${friend.email}</div>
+                                            </div>
+                                        </div>
+                                        <button class="btn btn-sm btn-danger remove-friend-btn" data-id="${friend.id}">
+                                            Remove
+                                        </button>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="form-container" style="margin-top: 2rem;">
+                        <h2 class="form-title">Find Friends</h2>
+                        <ul class="users-list">
+                            ${users.map(user => `
+                                <li class="friend-item">
+                                    <div class="friend-info">
+                                        <div class="post-avatar">${user.username.charAt(0).toUpperCase()}</div>
+                                        <div class="friend-details">
+                                            <div class="friend-username">${user.username}</div>
+                                            <div class="friend-email">${user.email}</div>
+                                        </div>
+                                    </div>
+                                    ${friendIds.includes(user.id) ? 
+                                        `<button class="btn btn-sm" disabled>Friends</button>` : 
+                                        `<button class="btn btn-sm add-friend-btn" data-id="${user.id}">
+                                            Add Friend
+                                        </button>`
+                                    }
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                </div>
+            `;
+            
+            // Add event listeners to add friend buttons
+            document.querySelectorAll('.add-friend-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const userId = this.getAttribute('data-id');
+                    const result = sendFriendRequest(userId);
+                    
+                    const alert = document.getElementById('friendsAlert');
+                    alert.textContent = result.message;
+                    
+                    if (result.success) {
+                        alert.classList.remove('hidden', 'alert-danger');
+                        alert.classList.add('alert-success');
+                        
+                        // Refresh the page to show updated friend list
+                        setTimeout(() => {
+                            renderFriendsPage();
+                        }, 1000);
+                    } else {
+                        alert.classList.remove('hidden', 'alert-success');
+                        alert.classList.add('alert-danger');
+                    }
+                    
+                    setTimeout(() => {
+                        alert.classList.add('hidden');
+                    }, 3000);
+                });
+            });
+            
+            // Add event listeners to remove friend buttons
+            document.querySelectorAll('.remove-friend-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    if (confirm('Are you sure you want to remove this friend?')) {
+                        const userId = this.getAttribute('data-id');
+                        const result = removeFriend(userId);
+                        
+                        const alert = document.getElementById('friendsAlert');
+                        alert.textContent = result.message;
+                        
+                        if (result.success) {
+                            alert.classList.remove('hidden', 'alert-danger');
+                            alert.classList.add('alert-success');
+                            
+                            // Refresh the page to show updated friend list
+                            setTimeout(() => {
+                                renderFriendsPage();
+                            }, 1000);
+                        } else {
+                            alert.classList.remove('hidden', 'alert-success');
+                            alert.classList.add('alert-danger');
+                        }
+                        
+                        setTimeout(() => {
+                            alert.classList.add('hidden');
+                        }, 3000);
+                    }
+                });
+            });
+        }
         // Navigation
         function navigateTo(page) {
             currentPage = page;
@@ -969,6 +1189,9 @@
                     break;
                 case 'profile':
                     renderProfilePage();
+                    break;
+                case 'friends':
+                    renderFriendsPage();
                     break;
                 default:
                     renderLoginPage();
