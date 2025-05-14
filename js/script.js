@@ -1,332 +1,336 @@
 // State Management
-        let currentUser = null;
-        let currentPage = 'login';
-        let currentPostType = 'all';
+let currentUser = null;
+let currentPage = 'login';
+let currentPostType = 'all';
 
-        // Initialize local storage if needed
-        function initializeStorage() {
-            if (!localStorage.getItem('users')) {
-                localStorage.setItem('users', JSON.stringify([]));
-            }
-            if (!localStorage.getItem('posts')) {
-                localStorage.setItem('posts', JSON.stringify([]));
-            }
-            if (!localStorage.getItem('comments')) {
-                localStorage.setItem('comments', JSON.stringify([]));
-            }
-            if (!localStorage.getItem('likes')) {
-                localStorage.setItem('likes', JSON.stringify([]));
-            }
-            if (!localStorage.getItem('relationships')) {
-                localStorage.setItem('relationships', JSON.stringify([]));
-        }
+// Initialize local storage if needed
+function initializeStorage() {
+    if (!localStorage.getItem('users')) {
+        localStorage.setItem('users', JSON.stringify([]));
+    }
+    if (!localStorage.getItem('posts')) {
+        localStorage.setItem('posts', JSON.stringify([]));
+    }
+    if (!localStorage.getItem('comments')) {
+        localStorage.setItem('comments', JSON.stringify([]));
+    }
+    if (!localStorage.getItem('likes')) {
+        localStorage.setItem('likes', JSON.stringify([]));
+    }
+    if (!localStorage.getItem('relationships')) {
+        localStorage.setItem('relationships', JSON.stringify([]));
+    }
+}
 
-        // User Authentication Functions
-        function register(username, email, password) {
-            const users = JSON.parse(localStorage.getItem('users'));
-            
-            // Check if username or email already exists
-            if (users.some(user => user.username === username)) {
-                return { success: false, message: 'Username already exists' };
-            }
-            
-            if (users.some(user => user.email === email)) {
-                return { success: false, message: 'Email already exists' };
-            }
-            
-            // Password validation
-            const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*])/;
-            if (!passwordRegex.test(password)) {
-                return { 
-                    success: false, 
-                    message: 'Password must contain at least one uppercase letter and one symbol' 
-                };
-            }
-            
-            // Create new user
-            const newUser = {
-                id: Date.now().toString(),
-                username,
-                email,
-                password, // In a real app, this should be hashed
-                createdAt: new Date().toISOString()
-            };
-            
-            users.push(newUser);
-            localStorage.setItem('users', JSON.stringify(users));
-            
-            return { success: true, user: newUser };
-        }
+// User Authentication Functions
+function register(username, email, password) {
+    const users = JSON.parse(localStorage.getItem('users'));
 
-        function login(email, password) {
-            const users = JSON.parse(localStorage.getItem('users'));
-            
-            const user = users.find(user => user.email === email && user.password === password);
-            
-            if (user) {
-                currentUser = user;
-                localStorage.setItem('currentUser', JSON.stringify(user));
-                return { success: true, user };
-            } else {
-                return { success: false, message: 'Invalid email or password' };
-            }
-        }
+    // Check if username or email already exists
+    if (users.some(user => user.username === username)) {
+        return { success: false, message: 'Username already exists' };
+    }
 
-        function logout() {
-            currentUser = null;
-            localStorage.removeItem('currentUser');
-            navigateTo('login');
-        }
+    if (users.some(user => user.email === email)) {
+        return { success: false, message: 'Email already exists' };
+    }
 
-        // Post Functions
-        function createPost(content, type, mediaUrl = null) {
-            if (!currentUser) return { success: false, message: 'You must be logged in to create a post' };
-            
-            const posts = JSON.parse(localStorage.getItem('posts'));
-            
-            const newPost = {
-                id: Date.now().toString(),
-                userId: currentUser.id,
-                username: currentUser.username,
-                content,
-                type, // 'text', 'image', or 'video'
-                mediaUrl,
-                createdAt: new Date().toISOString()
-            };
-            
-            posts.push(newPost);
-            localStorage.setItem('posts', JSON.stringify(posts));
-            
-            return { success: true, post: newPost };
-        }
+    // Password validation
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*])/;
+    if (!passwordRegex.test(password)) {
+        return {
+            success: false,
+            message: 'Password must contain at least one uppercase letter and one symbol'
+        };
+    }
 
-        function deletePost(postId) {
-            if (!currentUser) return { success: false, message: 'You must be logged in' };
-            
-            let posts = JSON.parse(localStorage.getItem('posts'));
-            const postToDelete = posts.find(post => post.id === postId);
-            
-            if (!postToDelete) {
-                return { success: false, message: 'Post not found' };
-            }
-            
-            if (postToDelete.userId !== currentUser.id) {
-                return { success: false, message: 'You can only delete your own posts' };
-            }
-            
-            // Remove the post
-            posts = posts.filter(post => post.id !== postId);
-            localStorage.setItem('posts', JSON.stringify(posts));
-            
-            // Also remove related comments and likes
-            let comments = JSON.parse(localStorage.getItem('comments'));
-            comments = comments.filter(comment => comment.postId !== postId);
-            localStorage.setItem('comments', JSON.stringify(comments));
-            
-            let likes = JSON.parse(localStorage.getItem('likes'));
-            likes = likes.filter(like => like.postId !== postId);
-            localStorage.setItem('likes', JSON.stringify(likes));
-            
-            return { success: true };
-        }
 
-        function getPosts(type = 'all', userId = null) {
-            let posts = JSON.parse(localStorage.getItem('posts'));
-            
-            // Filter by type if specified
-            if (type !== 'all') {
-                posts = posts.filter(post => post.type === type);
-            }
-            
-            // Filter by user if specified
-            if (userId) {
-                posts = posts.filter(post => post.userId === userId);
-            }
-            
-            // Sort by creation date (newest first)
-            posts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-            
-            return posts;
-        }
+    // Create new user
+    const newUser = {
+        id: Date.now().toString(),
+        username,
+        email,
+        password, // In a real app, this should be hashed
+        createdAt: new Date().toISOString()
+    };
 
-        // Comment Functions
-        function addComment(postId, content) {
-            if (!currentUser) return { success: false, message: 'You must be logged in to comment' };
-            
-            const comments = JSON.parse(localStorage.getItem('comments'));
-            
-            const newComment = {
-                id: Date.now().toString(),
-                postId,
-                userId: currentUser.id,
-                username: currentUser.username,
-                content,
-                createdAt: new Date().toISOString()
-            };
-            
-            comments.push(newComment);
-            localStorage.setItem('comments', JSON.stringify(comments));
-            
-            return { success: true, comment: newComment };
-        }
 
-        function getComments(postId) {
-            const comments = JSON.parse(localStorage.getItem('comments'));
-            return comments
-                .filter(comment => comment.postId === postId)
-                .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-        }
+    users.push(newUser);
+    localStorage.setItem('users', JSON.stringify(users));
 
-        // Like Functions
-        function toggleLike(postId, type = 'post') {
-            if (!currentUser) return { success: false, message: 'You must be logged in to like' };
-            
-            const likes = JSON.parse(localStorage.getItem('likes'));
-            
-            // Check if the user already liked this post/comment
-            const existingLike = likes.find(
-                like => like.targetId === postId && 
-                       like.userId === currentUser.id &&
-                       like.type === type
-            );
-            
-            if (existingLike) {
-                // Remove the like
-                const updatedLikes = likes.filter(like => like.id !== existingLike.id);
-                localStorage.setItem('likes', JSON.stringify(updatedLikes));
-                return { success: true, action: 'unliked' };
-            } else {
-                // Add the like
-                const newLike = {
-                    id: Date.now().toString(),
-                    targetId: postId, // postId or commentId
-                    type, // 'post' or 'comment'
-                    userId: currentUser.id,
-                    createdAt: new Date().toISOString()
-                };
-                
-                likes.push(newLike);
-                localStorage.setItem('likes', JSON.stringify(likes));
-                return { success: true, action: 'liked' };
-            }
-        }
+    return { success: true, user: newUser };
+}
 
-        function getLikes(targetId, type = 'post') {
-            const likes = JSON.parse(localStorage.getItem('likes'));
-            return likes.filter(like => like.targetId === targetId && like.type === type);
-        }
 
-        function isLikedByCurrentUser(targetId, type = 'post') {
-            if (!currentUser) return false;
-            
-            const likes = JSON.parse(localStorage.getItem('likes'));
-            return likes.some(
-                like => like.targetId === targetId && 
-                       like.userId === currentUser.id &&
-                       like.type === type
-            );
-        }
-        // Send friend request (auto-accepted in this implementation)
-        function sendFriendRequest(recipientId) {
-            if (!currentUser) return { success: false, message: 'You must be logged in to send friend requests' };
-            
-            // Check if users exist
-            const users = JSON.parse(localStorage.getItem('users'));
-            const recipient = users.find(user => user.id === recipientId);
-            
-            if (!recipient) {
-                return { success: false, message: 'User not found' };
-            }
-            
-            // Check if already friends
-            const relationships = JSON.parse(localStorage.getItem('relationships'));
-            const existingRelationship = relationships.find(
-                rel => (rel.user1Id === currentUser.id && rel.user2Id === recipientId) || 
-                       (rel.user1Id === recipientId && rel.user2Id === currentUser.id)
-            );
-            
-            if (existingRelationship) {
-                return { success: false, message: 'You are already friends with this user' };
-            }
-            
-            // Create new relationship (auto-accepted)
-            const newRelationship = {
-                id: Date.now().toString(),
-                user1Id: currentUser.id,
-                user2Id: recipientId,
-                createdAt: new Date().toISOString()
-            };
-            
-            relationships.push(newRelationship);
-            localStorage.setItem('relationships', JSON.stringify(relationships));
-            
-            return { 
-                success: true, 
-                message: `You are now friends with ${recipient.username}`,
-                relationship: newRelationship 
-            };
-        }
-        
-        // Remove friend relationship
-        function removeFriend(userId) {
-            if (!currentUser) return { success: false, message: 'You must be logged in' };
-            
-            let relationships = JSON.parse(localStorage.getItem('relationships'));
-            const relationshipToRemove = relationships.find(
-                rel => (rel.user1Id === currentUser.id && rel.user2Id === userId) || 
-                       (rel.user1Id === userId && rel.user2Id === currentUser.id)
-            );
-            
-            if (!relationshipToRemove) {
-                return { success: false, message: 'Friend relationship not found' };
-            }
-            
-            // Remove the relationship
-            relationships = relationships.filter(rel => rel.id !== relationshipToRemove.id);
-            localStorage.setItem('relationships', JSON.stringify(relationships));
-            
-            return { success: true, message: 'Friend removed successfully' };
-        }
-        
-        // Get user's friends
-        function getFriends(userId = currentUser.id) {
-            if (!currentUser) return [];
-            
-            const relationships = JSON.parse(localStorage.getItem('relationships'));
-            const users = JSON.parse(localStorage.getItem('users'));
-            
-            // Find all relationships where the user is involved
-            const userRelationships = relationships.filter(
-                rel => rel.user1Id === userId || rel.user2Id === userId
-            );
-            
-            // Get the friend IDs
-            const friendIds = userRelationships.map(rel => 
-                rel.user1Id === userId ? rel.user2Id : rel.user1Id
-            );
-            
-            // Get the friend objects
-            const friends = users.filter(user => friendIds.includes(user.id));
-            
-            return friends;
-        }
-        
-        // Check if two users are friends
-        function areFriends(user1Id, user2Id) {
-            const relationships = JSON.parse(localStorage.getItem('relationships'));
-            
-            return relationships.some(
-                rel => (rel.user1Id === user1Id && rel.user2Id === user2Id) || 
-                       (rel.user1Id === user2Id && rel.user2Id === user1Id)
-            );
-        }
-        // UI Rendering Functions
-        function renderNavbar() {
-            const navMenu = document.getElementById('navMenu');
-            navMenu.innerHTML = '';
-            
-            if (currentUser) {
-                navMenu.innerHTML = `
+function login(email, password) {
+    const users = JSON.parse(localStorage.getItem('users'));
+
+    const user = users.find(user => user.email === email && user.password === password);
+
+    if (user) {
+        currentUser = user;
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        return { success: true, user };
+    } else {
+        return { success: false, message: 'Invalid email or password' };
+    }
+}
+
+function logout() {
+    currentUser = null;
+    localStorage.removeItem('currentUser');
+    navigateTo('login');
+}
+
+// Post Functions
+function createPost(content, type, mediaUrl = null) {
+    if (!currentUser) return { success: false, message: 'You must be logged in to create a post' };
+
+    const posts = JSON.parse(localStorage.getItem('posts'));
+
+    const newPost = {
+        id: Date.now().toString(),
+        userId: currentUser.id,
+        username: currentUser.username,
+        content,
+        type, // 'text', 'image', or 'video'
+        mediaUrl,
+        createdAt: new Date().toISOString()
+    };
+
+    posts.push(newPost);
+    localStorage.setItem('posts', JSON.stringify(posts));
+
+    return { success: true, post: newPost };
+}
+
+function deletePost(postId) {
+    if (!currentUser) return { success: false, message: 'You must be logged in' };
+
+    let posts = JSON.parse(localStorage.getItem('posts'));
+    const postToDelete = posts.find(post => post.id === postId);
+
+    if (!postToDelete) {
+        return { success: false, message: 'Post not found' };
+    }
+
+    if (postToDelete.userId !== currentUser.id) {
+        return { success: false, message: 'You can only delete your own posts' };
+    }
+
+    // Remove the post
+    posts = posts.filter(post => post.id !== postId);
+    localStorage.setItem('posts', JSON.stringify(posts));
+
+    // Also remove related comments and likes
+    let comments = JSON.parse(localStorage.getItem('comments'));
+    comments = comments.filter(comment => comment.postId !== postId);
+    localStorage.setItem('comments', JSON.stringify(comments));
+
+    let likes = JSON.parse(localStorage.getItem('likes'));
+    likes = likes.filter(like => like.postId !== postId);
+    localStorage.setItem('likes', JSON.stringify(likes));
+
+    return { success: true };
+}
+
+function getPosts(type = 'all', userId = null) {
+    let posts = JSON.parse(localStorage.getItem('posts'));
+
+    // Filter by type if specified
+    if (type !== 'all') {
+        posts = posts.filter(post => post.type === type);
+    }
+
+    // Filter by user if specified
+    if (userId) {
+        posts = posts.filter(post => post.userId === userId);
+    }
+
+    // Sort by creation date (newest first)
+    posts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    return posts;
+}
+
+// Comment Functions
+function addComment(postId, content) {
+    if (!currentUser) return { success: false, message: 'You must be logged in to comment' };
+
+    const comments = JSON.parse(localStorage.getItem('comments'));
+
+    const newComment = {
+        id: Date.now().toString(),
+        postId,
+        userId: currentUser.id,
+        username: currentUser.username,
+        content,
+        createdAt: new Date().toISOString()
+    };
+
+    comments.push(newComment);
+    localStorage.setItem('comments', JSON.stringify(comments));
+
+    return { success: true, comment: newComment };
+}
+
+function getComments(postId) {
+    const comments = JSON.parse(localStorage.getItem('comments'));
+    return comments
+        .filter(comment => comment.postId === postId)
+        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+}
+
+// Like Functions
+function toggleLike(postId, type = 'post') {
+    if (!currentUser) return { success: false, message: 'You must be logged in to like' };
+
+    const likes = JSON.parse(localStorage.getItem('likes'));
+
+    // Check if the user already liked this post/comment
+    const existingLike = likes.find(
+        like => like.targetId === postId &&
+            like.userId === currentUser.id &&
+            like.type === type
+    );
+
+    if (existingLike) {
+        // Remove the like
+        const updatedLikes = likes.filter(like => like.id !== existingLike.id);
+        localStorage.setItem('likes', JSON.stringify(updatedLikes));
+        return { success: true, action: 'unliked' };
+    } else {
+        // Add the like
+        const newLike = {
+            id: Date.now().toString(),
+            targetId: postId, // postId or commentId
+            type, // 'post' or 'comment'
+            userId: currentUser.id,
+            createdAt: new Date().toISOString()
+        };
+
+        likes.push(newLike);
+        localStorage.setItem('likes', JSON.stringify(likes));
+        return { success: true, action: 'liked' };
+    }
+}
+
+function getLikes(targetId, type = 'post') {
+    const likes = JSON.parse(localStorage.getItem('likes'));
+    return likes.filter(like => like.targetId === targetId && like.type === type);
+}
+
+function isLikedByCurrentUser(targetId, type = 'post') {
+    if (!currentUser) return false;
+
+    const likes = JSON.parse(localStorage.getItem('likes'));
+    return likes.some(
+        like => like.targetId === targetId &&
+            like.userId === currentUser.id &&
+            like.type === type
+    );
+}
+// Send friend request (auto-accepted in this implementation)
+function sendFriendRequest(recipientId) {
+    if (!currentUser) return { success: false, message: 'You must be logged in to send friend requests' };
+
+    // Check if users exist
+    const users = JSON.parse(localStorage.getItem('users'));
+    const recipient = users.find(user => user.id === recipientId);
+
+    if (!recipient) {
+        return { success: false, message: 'User not found' };
+    }
+
+    // Check if already friends
+    const relationships = JSON.parse(localStorage.getItem('relationships'));
+    const existingRelationship = relationships.find(
+        rel => (rel.user1Id === currentUser.id && rel.user2Id === recipientId) ||
+            (rel.user1Id === recipientId && rel.user2Id === currentUser.id)
+    );
+
+    if (existingRelationship) {
+        return { success: false, message: 'You are already friends with this user' };
+    }
+
+    // Create new relationship (auto-accepted)
+    const newRelationship = {
+        id: Date.now().toString(),
+        user1Id: currentUser.id,
+        user2Id: recipientId,
+        createdAt: new Date().toISOString()
+    };
+
+    relationships.push(newRelationship);
+    localStorage.setItem('relationships', JSON.stringify(relationships));
+
+    return {
+        success: true,
+        message: `You are now friends with ${recipient.username}`,
+        relationship: newRelationship
+    };
+}
+
+// Remove friend relationship
+function removeFriend(userId) {
+    if (!currentUser) return { success: false, message: 'You must be logged in' };
+
+    let relationships = JSON.parse(localStorage.getItem('relationships'));
+    const relationshipToRemove = relationships.find(
+        rel => (rel.user1Id === currentUser.id && rel.user2Id === userId) ||
+            (rel.user1Id === userId && rel.user2Id === currentUser.id)
+    );
+
+    if (!relationshipToRemove) {
+        return { success: false, message: 'Friend relationship not found' };
+    }
+
+    // Remove the relationship
+    relationships = relationships.filter(rel => rel.id !== relationshipToRemove.id);
+    localStorage.setItem('relationships', JSON.stringify(relationships));
+
+    return { success: true, message: 'Friend removed successfully' };
+}
+
+// Get user's friends
+function getFriends(userId = currentUser.id) {
+    if (!currentUser) return [];
+
+    const relationships = JSON.parse(localStorage.getItem('relationships'));
+    const users = JSON.parse(localStorage.getItem('users'));
+
+    // Find all relationships where the user is involved
+    const userRelationships = relationships.filter(
+        rel => rel.user1Id === userId || rel.user2Id === userId
+    );
+
+    // Get the friend IDs
+    const friendIds = userRelationships.map(rel =>
+        rel.user1Id === userId ? rel.user2Id : rel.user1Id
+    );
+
+    // Get the friend objects
+    const friends = users.filter(user => friendIds.includes(user.id));
+
+    return friends;
+}
+
+// Check if two users are friends
+function areFriends(user1Id, user2Id) {
+    const relationships = JSON.parse(localStorage.getItem('relationships'));
+
+    return relationships.some(
+        rel => (rel.user1Id === user1Id && rel.user2Id === user2Id) ||
+            (rel.user1Id === user2Id && rel.user2Id === user1Id)
+    );
+}
+// UI Rendering Functions
+function renderNavbar() {
+    const navMenu = document.getElementById('navMenu');
+    navMenu.innerHTML = '';
+
+    if (currentUser) {
+        navMenu.innerHTML = `
                     <li class="nav-item">
                         <a href="#" class="nav-link" data-page="feed" data-post-type="all">
                             <i class="fas fa-home"></i> All Posts
@@ -363,8 +367,8 @@
                         </a>
                     </li>
                 `;
-            } else {
-                navMenu.innerHTML = `
+    } else {
+        navMenu.innerHTML = `
                     <li class="nav-item">
                         <a href="#" class="nav-link" data-page="login">
                             <i class="fas fa-sign-in-alt"></i> Login
@@ -376,33 +380,33 @@
                         </a>
                     </li>
                 `;
-            }
-            
-            // Add event listeners to navigation links
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    
-                    if (this.id === 'logoutBtn') {
-                        logout();
-                        return;
-                    }
-                    
-                    const page = this.getAttribute('data-page');
-                    const postType = this.getAttribute('data-post-type');
-                    
-                    if (postType) {
-                        currentPostType = postType;
-                    }
-                    
-                    navigateTo(page);
-                });
-            });
-        }
+    }
 
-        function renderLoginPage() {
-            const mainContent = document.getElementById('mainContent');
-            mainContent.innerHTML = `
+    // Add event listeners to navigation links
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', function (e) {
+            e.preventDefault();
+
+            if (this.id === 'logoutBtn') {
+                logout();
+                return;
+            }
+
+            const page = this.getAttribute('data-page');
+            const postType = this.getAttribute('data-post-type');
+
+            if (postType) {
+                currentPostType = postType;
+            }
+
+            navigateTo(page);
+        });
+    });
+}
+
+function renderLoginPage() {
+    const mainContent = document.getElementById('mainContent');
+    mainContent.innerHTML = `
                 <div class="auth-container">
                     <div class="form-container fade-in">
                         <h2 class="form-title">Log In to ConnectMe</h2>
@@ -424,40 +428,40 @@
                     </div>
                 </div>
             `;
-            
-            // Add event listener to login form
-            document.getElementById('loginForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                const email = document.getElementById('loginEmail').value;
-                const password = document.getElementById('loginPassword').value;
-                
-                const result = login(email, password);
-                
-                if (result.success) {
-                    navigateTo('feed');
-                } else {
-                    const alert = document.getElementById('loginAlert');
-                    alert.textContent = result.message;
-                    alert.classList.remove('hidden', 'alert-success');
-                    alert.classList.add('alert-danger');
-                    
-                    setTimeout(() => {
-                        alert.classList.add('hidden');
-                    }, 3000);
-                }
-            });
-            
-            // Add event listener to register link
-            document.getElementById('goToRegister').addEventListener('click', function(e) {
-                e.preventDefault();
-                navigateTo('register');
-            });
-        }
 
-        function renderRegisterPage() {
-            const mainContent = document.getElementById('mainContent');
-            mainContent.innerHTML = `
+    // Add event listener to login form
+    document.getElementById('loginForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+
+        const result = login(email, password);
+
+        if (result.success) {
+            navigateTo('feed');
+        } else {
+            const alert = document.getElementById('loginAlert');
+            alert.textContent = result.message;
+            alert.classList.remove('hidden', 'alert-success');
+            alert.classList.add('alert-danger');
+
+            setTimeout(() => {
+                alert.classList.add('hidden');
+            }, 3000);
+        }
+    });
+
+    // Add event listener to register link
+    document.getElementById('goToRegister').addEventListener('click', function (e) {
+        e.preventDefault();
+        navigateTo('register');
+    });
+}
+
+function renderRegisterPage() {
+    const mainContent = document.getElementById('mainContent');
+    mainContent.innerHTML = `
                 <div class="auth-container">
                     <div class="form-container fade-in">
                         <h2 class="form-title">Create an Account</h2>
@@ -488,61 +492,61 @@
                     </div>
                 </div>
             `;
-            
-            // Add event listener to register form
-            document.getElementById('registerForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                const username = document.getElementById('registerUsername').value;
-                const email = document.getElementById('registerEmail').value;
-                const password = document.getElementById('registerPassword').value;
-                const confirmPassword = document.getElementById('confirmPassword').value;
-                
-                const alert = document.getElementById('registerAlert');
-                
-                if (password !== confirmPassword) {
-                    alert.textContent = 'Passwords do not match';
-                    alert.classList.remove('hidden', 'alert-success');
-                    alert.classList.add('alert-danger');
-                    
-                    setTimeout(() => {
-                        alert.classList.add('hidden');
-                    }, 3000);
-                    
-                    return;
-                }
-                
-                const result = register(username, email, password);
-                
-                if (result.success) {
-                    alert.textContent = 'Registration successful! You can now log in.';
-                    alert.classList.remove('hidden', 'alert-danger');
-                    alert.classList.add('alert-success');
-                    
-                    setTimeout(() => {
-                        navigateTo('login');
-                    }, 2000);
-                } else {
-                    alert.textContent = result.message;
-                    alert.classList.remove('hidden', 'alert-success');
-                    alert.classList.add('alert-danger');
-                    
-                    setTimeout(() => {
-                        alert.classList.add('hidden');
-                    }, 3000);
-                }
-            });
-            
-            // Add event listener to login link
-            document.getElementById('goToLogin').addEventListener('click', function(e) {
-                e.preventDefault();
-                navigateTo('login');
-            });
+
+    // Add event listener to register form
+    document.getElementById('registerForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const username = document.getElementById('registerUsername').value;
+        const email = document.getElementById('registerEmail').value;
+        const password = document.getElementById('registerPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+
+        const alert = document.getElementById('registerAlert');
+
+        if (password !== confirmPassword) {
+            alert.textContent = 'Passwords do not match';
+            alert.classList.remove('hidden', 'alert-success');
+            alert.classList.add('alert-danger');
+
+            setTimeout(() => {
+                alert.classList.add('hidden');
+            }, 3000);
+
+            return;
         }
 
-        function renderFeedPage() {
-            const mainContent = document.getElementById('mainContent');
-            mainContent.innerHTML = `
+        const result = register(username, email, password);
+
+        if (result.success) {
+            alert.textContent = 'Registration successful! You can now log in.';
+            alert.classList.remove('hidden', 'alert-danger');
+            alert.classList.add('alert-success');
+
+            setTimeout(() => {
+                navigateTo('login');
+            }, 2000);
+        } else {
+            alert.textContent = result.message;
+            alert.classList.remove('hidden', 'alert-success');
+            alert.classList.add('alert-danger');
+
+            setTimeout(() => {
+                alert.classList.add('hidden');
+            }, 3000);
+        }
+    });
+
+    // Add event listener to login link
+    document.getElementById('goToLogin').addEventListener('click', function (e) {
+        e.preventDefault();
+        navigateTo('login');
+    });
+}
+
+function renderFeedPage() {
+    const mainContent = document.getElementById('mainContent');
+    mainContent.innerHTML = `
                 <div class="feed container fade-in">
                     <div class="create-post">
                         <div class="create-post-header">
@@ -578,179 +582,179 @@
                     <div id="postsContainer" class="posts-container"></div>
                 </div>
             `;
-            
-            // Load posts
+
+    // Load posts
+    loadPosts();
+
+    // Add event listeners to post type buttons
+    document.querySelectorAll('.post-type-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            currentPostType = this.getAttribute('data-type');
+
+            // Update active state
+            document.querySelectorAll('.post-type-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+
+            // Reload posts with the new type
             loadPosts();
-            
-            // Add event listeners to post type buttons
-            document.querySelectorAll('.post-type-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    currentPostType = this.getAttribute('data-type');
-                    
-                    // Update active state
-                    document.querySelectorAll('.post-type-btn').forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-                    
-                    // Reload posts with the new type
-                    loadPosts();
-                });
-            });
-            
-            // Add event listeners to post type options in create post
-            let selectedPostType = 'text';
-            let selectedFile = null;
-            
-            document.querySelectorAll('.post-type-option').forEach(option => {
-                option.addEventListener('click', function() {
-                    selectedPostType = this.getAttribute('data-type');
-                    
-                    // Update active state
-                    document.querySelectorAll('.post-type-option').forEach(o => o.classList.remove('active'));
-                    this.classList.add('active');
-                    
-                    // Clear preview
-                    document.getElementById('mediaPreview').innerHTML = '';
-                    selectedFile = null;
-                    
-                    // If it's an image or video, trigger file input
-                    if (selectedPostType === 'image') {
-                        document.getElementById('imageInput').click();
-                    } else if (selectedPostType === 'video') {
-                        document.getElementById('videoInput').click();
-                    }
-                });
-            });
-            
-            // Handle image selection
-            document.getElementById('imageInput').addEventListener('change', function(e) {
-                if (e.target.files && e.target.files[0]) {
-                    selectedFile = e.target.files[0];
-                    const reader = new FileReader();
-                    
-                    reader.onload = function(event) {
-                        document.getElementById('mediaPreview').style.display = 'block';
-                        document.getElementById('mediaPreview').innerHTML = `
+        });
+    });
+
+    // Add event listeners to post type options in create post
+    let selectedPostType = 'text';
+    let selectedFile = null;
+
+    document.querySelectorAll('.post-type-option').forEach(option => {
+        option.addEventListener('click', function () {
+            selectedPostType = this.getAttribute('data-type');
+
+            // Update active state
+            document.querySelectorAll('.post-type-option').forEach(o => o.classList.remove('active'));
+            this.classList.add('active');
+
+            // Clear preview
+            document.getElementById('mediaPreview').innerHTML = '';
+            selectedFile = null;
+
+            // If it's an image or video, trigger file input
+            if (selectedPostType === 'image') {
+                document.getElementById('imageInput').click();
+            } else if (selectedPostType === 'video') {
+                document.getElementById('videoInput').click();
+            }
+        });
+    });
+
+    // Handle image selection
+    document.getElementById('imageInput').addEventListener('change', function (e) {
+        if (e.target.files && e.target.files[0]) {
+            selectedFile = e.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+                document.getElementById('mediaPreview').style.display = 'block';
+                document.getElementById('mediaPreview').innerHTML = `
                             <img src="${event.target.result}" alt="Selected Image">
                         `;
-                    };
-                    
-                    reader.readAsDataURL(selectedFile);
-                }
-            });
-            
-            // Handle video selection
-            document.getElementById('videoInput').addEventListener('change', function(e) {
-                if (e.target.files && e.target.files[0]) {
-                    selectedFile = e.target.files[0];
-                    const reader = new FileReader();
-                    
-                    reader.onload = function(event) {
-                        document.getElementById('mediaPreview').style.display = 'block';
-                        document.getElementById('mediaPreview').innerHTML = `
+            };
+
+            reader.readAsDataURL(selectedFile);
+        }
+    });
+
+    // Handle video selection
+    document.getElementById('videoInput').addEventListener('change', function (e) {
+        if (e.target.files && e.target.files[0]) {
+            selectedFile = e.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+                document.getElementById('mediaPreview').style.display = 'block';
+                document.getElementById('mediaPreview').innerHTML = `
                             <video controls>
                                 <source src="${event.target.result}" type="${selectedFile.type}">
                                 Your browser does not support the video tag.
                             </video>
                         `;
-                    };
-                    
-                    reader.readAsDataURL(selectedFile);
-                }
-            });
-            
-            // Handle create post button
-            document.getElementById('createPostBtn').addEventListener('click', function() {
-                const content = document.getElementById('postContent').value.trim();
-                
-                if (!content && !selectedFile) {
-                    alert('Please add some content to your post');
-                    return;
-                }
-                
-                let mediaUrl = null;
-                
-                if (selectedFile) {
-                    // In a real app, we would upload the file to a server
-                    // For this demo, we'll use a data URL
-                    const reader = new FileReader();
-                    
-                    reader.onload = function(event) {
-                        mediaUrl = event.target.result;
-                        
-                        // Create the post after getting the media URL
-                        const result = createPost(content, selectedPostType, mediaUrl);
-                        
-                        if (result.success) {
-                            // Clear the form
-                            document.getElementById('postContent').value = '';
-                            document.getElementById('mediaPreview').style.display = 'none';
-                            document.getElementById('mediaPreview').innerHTML = '';
-                            selectedFile = null;
-                            
-                            // Reset post type to text
-                            selectedPostType = 'text';
-                            document.querySelectorAll('.post-type-option').forEach(o => o.classList.remove('active'));
-                            document.querySelector('.post-type-option[data-type="text"]').classList.add('active');
-                            
-                            // Reload posts
-                            loadPosts();
-                        }
-                    };
-                    
-                    reader.readAsDataURL(selectedFile);
-                } else {
-                    // Create text post
-                    const result = createPost(content, 'text');
-                    
-                    if (result.success) {
-                        // Clear the form
-                        document.getElementById('postContent').value = '';
-                        
-                        // Reload posts
-                        loadPosts();
-                    }
-                }
-            });
+            };
+
+            reader.readAsDataURL(selectedFile);
+        }
+    });
+
+    // Handle create post button
+    document.getElementById('createPostBtn').addEventListener('click', function () {
+        const content = document.getElementById('postContent').value.trim();
+
+        if (!content && !selectedFile) {
+            alert('Please add some content to your post');
+            return;
         }
 
-        function loadPosts() {
-            const postsContainer = document.getElementById('postsContainer');
-            postsContainer.innerHTML = '';
-            
-            const posts = getPosts(currentPostType);
-            
-            if (posts.length === 0) {
-                postsContainer.innerHTML = `
+        let mediaUrl = null;
+
+        if (selectedFile) {
+            // In a real app, we would upload the file to a server
+            // For this demo, we'll use a data URL
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+                mediaUrl = event.target.result;
+
+                // Create the post after getting the media URL
+                const result = createPost(content, selectedPostType, mediaUrl);
+
+                if (result.success) {
+                    // Clear the form
+                    document.getElementById('postContent').value = '';
+                    document.getElementById('mediaPreview').style.display = 'none';
+                    document.getElementById('mediaPreview').innerHTML = '';
+                    selectedFile = null;
+
+                    // Reset post type to text
+                    selectedPostType = 'text';
+                    document.querySelectorAll('.post-type-option').forEach(o => o.classList.remove('active'));
+                    document.querySelector('.post-type-option[data-type="text"]').classList.add('active');
+
+                    // Reload posts
+                    loadPosts();
+                }
+            };
+
+            reader.readAsDataURL(selectedFile);
+        } else {
+            // Create text post
+            const result = createPost(content, 'text');
+
+            if (result.success) {
+                // Clear the form
+                document.getElementById('postContent').value = '';
+
+                // Reload posts
+                loadPosts();
+            }
+        }
+    });
+}
+
+function loadPosts() {
+    const postsContainer = document.getElementById('postsContainer');
+    postsContainer.innerHTML = '';
+
+    const posts = getPosts(currentPostType);
+
+    if (posts.length === 0) {
+        postsContainer.innerHTML = `
                     <div class="no-posts">
                         <p>No posts to show. Be the first to share something!</p>
                     </div>
                 `;
-                return;
-            }
-            
-            posts.forEach(post => {
-                const postElement = document.createElement('div');
-                postElement.className = 'post fade-in';
-                
-                // Check if current user liked this post
-                const isLiked = isLikedByCurrentUser(post.id);
-                const likeCount = getLikes(post.id).length;
-                const commentCount = getComments(post.id).length;
-                
-                // Prepare media content based on post type
-                let mediaContent = '';
-                if (post.type === 'image' && post.mediaUrl) {
-                    mediaContent = `<img src="${post.mediaUrl}" alt="Post image" class="post-media">`;
-                } else if (post.type === 'video' && post.mediaUrl) {
-                    mediaContent = `
+        return;
+    }
+
+    posts.forEach(post => {
+        const postElement = document.createElement('div');
+        postElement.className = 'post fade-in';
+
+        // Check if current user liked this post
+        const isLiked = isLikedByCurrentUser(post.id);
+        const likeCount = getLikes(post.id).length;
+        const commentCount = getComments(post.id).length;
+
+        // Prepare media content based on post type
+        let mediaContent = '';
+        if (post.type === 'image' && post.mediaUrl) {
+            mediaContent = `<img src="${post.mediaUrl}" alt="Post image" class="post-media">`;
+        } else if (post.type === 'video' && post.mediaUrl) {
+            mediaContent = `
                         <video controls class="post-video">
                             <source src="${post.mediaUrl}" type="video/mp4">
                             Your browser does not support the video tag.
                         </video>
                     `;
-                }
-                
-                postElement.innerHTML = `
+        }
+
+        postElement.innerHTML = `
                     <div class="post-header">
                         <div class="post-user">
                             <div class="post-avatar">${post.username.charAt(0).toUpperCase()}</div>
@@ -787,81 +791,81 @@
                     </div>
                     <div class="comments-section" id="comments-${post.id}"></div>
                 `;
-                
-                postsContainer.appendChild(postElement);
-                
-                // Load comments for this post
-                loadComments(post.id);
-            });
-            
-            // Add event listeners to like buttons
-            document.querySelectorAll('.post-like').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const postId = this.getAttribute('data-id');
-                    const result = toggleLike(postId);
-                    
-                    if (result.success) {
-                        this.classList.toggle('active');
-                        const likeCount = getLikes(postId).length;
-                        this.innerHTML = `<i class="fas fa-heart"></i> ${likeCount}`;
-                    }
-                });
-            });
-            
-            // Add event listeners to comment buttons
-            document.querySelectorAll('.add-comment-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const postId = this.getAttribute('data-id');
-                    const inputElement = this.previousElementSibling;
-                    const content = inputElement.value.trim();
-                    
-                    if (content) {
-                        const result = addComment(postId, content);
-                        
-                        if (result.success) {
-                            inputElement.value = '';
-                            loadComments(postId);
-                            
-                            // Update comment count
-                            const commentCount = getComments(postId).length;
-                            const commentCountElement = document.querySelector(`.post-comment[data-id="${postId}"]`);
-                            if (commentCountElement) {
-                                commentCountElement.innerHTML = `<i class="fas fa-comment"></i> ${commentCount}`;
-                            }
-                        }
-                    }
-                });
-            });
-            
-            // Add event listeners to delete buttons
-            document.querySelectorAll('.delete-post-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    if (confirm('Are you sure you want to delete this post?')) {
-                        const postId = this.getAttribute('data-id');
-                        const result = deletePost(postId);
-                        
-                        if (result.success) {
-                            loadPosts();
-                        }
-                    }
-                });
-            });
-        }
 
-        function loadComments(postId) {
-            const commentsSection = document.getElementById(`comments-${postId}`);
-            commentsSection.innerHTML = '';
-            
-            const comments = getComments(postId);
-            
-            comments.forEach(comment => {
-                const commentElement = document.createElement('div');
-                commentElement.className = 'comment';
-                
-                const isLiked = isLikedByCurrentUser(comment.id, 'comment');
-                const likeCount = getLikes(comment.id, 'comment').length;
-                
-                commentElement.innerHTML = `
+        postsContainer.appendChild(postElement);
+
+        // Load comments for this post
+        loadComments(post.id);
+    });
+
+    // Add event listeners to like buttons
+    document.querySelectorAll('.post-like').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const postId = this.getAttribute('data-id');
+            const result = toggleLike(postId);
+
+            if (result.success) {
+                this.classList.toggle('active');
+                const likeCount = getLikes(postId).length;
+                this.innerHTML = `<i class="fas fa-heart"></i> ${likeCount}`;
+            }
+        });
+    });
+
+    // Add event listeners to comment buttons
+    document.querySelectorAll('.add-comment-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const postId = this.getAttribute('data-id');
+            const inputElement = this.previousElementSibling;
+            const content = inputElement.value.trim();
+
+            if (content) {
+                const result = addComment(postId, content);
+
+                if (result.success) {
+                    inputElement.value = '';
+                    loadComments(postId);
+
+                    // Update comment count
+                    const commentCount = getComments(postId).length;
+                    const commentCountElement = document.querySelector(`.post-comment[data-id="${postId}"]`);
+                    if (commentCountElement) {
+                        commentCountElement.innerHTML = `<i class="fas fa-comment"></i> ${commentCount}`;
+                    }
+                }
+            }
+        });
+    });
+
+    // Add event listeners to delete buttons
+    document.querySelectorAll('.delete-post-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            if (confirm('Are you sure you want to delete this post?')) {
+                const postId = this.getAttribute('data-id');
+                const result = deletePost(postId);
+
+                if (result.success) {
+                    loadPosts();
+                }
+            }
+        });
+    });
+}
+
+function loadComments(postId) {
+    const commentsSection = document.getElementById(`comments-${postId}`);
+    commentsSection.innerHTML = '';
+
+    const comments = getComments(postId);
+
+    comments.forEach(comment => {
+        const commentElement = document.createElement('div');
+        commentElement.className = 'comment';
+
+        const isLiked = isLikedByCurrentUser(comment.id, 'comment');
+        const likeCount = getLikes(comment.id, 'comment').length;
+
+        commentElement.innerHTML = `
                     <div class="comment-header">
                         <div class="comment-user">${comment.username}</div>
                         <div class="comment-date">${new Date(comment.createdAt).toLocaleString()}</div>
@@ -873,32 +877,32 @@
                         </div>
                     </div>
                 `;
-                
-                commentsSection.appendChild(commentElement);
-            });
-            
-            // Add event listeners to comment like buttons
-            document.querySelectorAll('.comment-like').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const commentId = this.getAttribute('data-id');
-                    const result = toggleLike(commentId, 'comment');
-                    
-                    if (result.success) {
-                        this.classList.toggle('active');
-                        const likeCount = getLikes(commentId, 'comment').length;
-                        this.innerHTML = `<i class="fas fa-heart"></i> ${likeCount}`;
-                    }
-                });
-            });
-        }
 
-        function renderProfilePage() {
-            const mainContent = document.getElementById('mainContent');
-            
-            // Get user's posts
-            const userPosts = getPosts('all', currentUser.id);
-            
-            mainContent.innerHTML = `
+        commentsSection.appendChild(commentElement);
+    });
+
+    // Add event listeners to comment like buttons
+    document.querySelectorAll('.comment-like').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const commentId = this.getAttribute('data-id');
+            const result = toggleLike(commentId, 'comment');
+
+            if (result.success) {
+                this.classList.toggle('active');
+                const likeCount = getLikes(commentId, 'comment').length;
+                this.innerHTML = `<i class="fas fa-heart"></i> ${likeCount}`;
+            }
+        });
+    });
+}
+
+function renderProfilePage() {
+    const mainContent = document.getElementById('mainContent');
+
+    // Get user's posts
+    const userPosts = getPosts('all', currentUser.id);
+
+    mainContent.innerHTML = `
                 <div class="profile container fade-in">
                     <div class="profile-header">
                         <div class="profile-avatar">${currentUser.username.charAt(0).toUpperCase()}</div>
@@ -916,40 +920,40 @@
                     <div id="userPostsContainer" class="posts-container"></div>
                 </div>
             `;
-            
-            // Load user's posts
-            const userPostsContainer = document.getElementById('userPostsContainer');
-            
-            if (userPosts.length === 0) {
-                userPostsContainer.innerHTML = `
+
+    // Load user's posts
+    const userPostsContainer = document.getElementById('userPostsContainer');
+
+    if (userPosts.length === 0) {
+        userPostsContainer.innerHTML = `
                     <div class="no-posts">
                         <p>You haven't created any posts yet. Share something!</p>
                     </div>
                 `;
-            } else {
-                userPosts.forEach(post => {
-                    const postElement = document.createElement('div');
-                    postElement.className = 'post fade-in';
-                    
-                    // Check if current user liked this post
-                    const isLiked = isLikedByCurrentUser(post.id);
-                    const likeCount = getLikes(post.id).length;
-                    const commentCount = getComments(post.id).length;
-                    
-                    // Prepare media content based on post type
-                    let mediaContent = '';
-                    if (post.type === 'image' && post.mediaUrl) {
-                        mediaContent = `<img src="${post.mediaUrl}" alt="Post image" class="post-media">`;
-                    } else if (post.type === 'video' && post.mediaUrl) {
-                        mediaContent = `
+    } else {
+        userPosts.forEach(post => {
+            const postElement = document.createElement('div');
+            postElement.className = 'post fade-in';
+
+            // Check if current user liked this post
+            const isLiked = isLikedByCurrentUser(post.id);
+            const likeCount = getLikes(post.id).length;
+            const commentCount = getComments(post.id).length;
+
+            // Prepare media content based on post type
+            let mediaContent = '';
+            if (post.type === 'image' && post.mediaUrl) {
+                mediaContent = `<img src="${post.mediaUrl}" alt="Post image" class="post-media">`;
+            } else if (post.type === 'video' && post.mediaUrl) {
+                mediaContent = `
                             <video controls class="post-video">
                                 <source src="${post.mediaUrl}" type="video/mp4">
                                 Your browser does not support the video tag.
                             </video>
                         `;
-                    }
-                    
-                    postElement.innerHTML = `
+            }
+
+            postElement.innerHTML = `
                         <div class="post-header">
                             <div class="post-user">
                                 <div class="post-avatar">${post.username.charAt(0).toUpperCase()}</div>
@@ -984,77 +988,77 @@
                         </div>
                         <div class="comments-section" id="comments-${post.id}"></div>
                     `;
-                    
-                    userPostsContainer.appendChild(postElement);
-                    
-                    // Load comments for this post
-                    loadComments(post.id);
-                });
-                
-                // Add event listeners
-                document.querySelectorAll('.post-like').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        const postId = this.getAttribute('data-id');
-                        const result = toggleLike(postId);
-                        
-                        if (result.success) {
-                            this.classList.toggle('active');
-                            const likeCount = getLikes(postId).length;
-                            this.innerHTML = `<i class="fas fa-heart"></i> ${likeCount}`;
+
+            userPostsContainer.appendChild(postElement);
+
+            // Load comments for this post
+            loadComments(post.id);
+        });
+
+        // Add event listeners
+        document.querySelectorAll('.post-like').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const postId = this.getAttribute('data-id');
+                const result = toggleLike(postId);
+
+                if (result.success) {
+                    this.classList.toggle('active');
+                    const likeCount = getLikes(postId).length;
+                    this.innerHTML = `<i class="fas fa-heart"></i> ${likeCount}`;
+                }
+            });
+        });
+
+        document.querySelectorAll('.add-comment-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const postId = this.getAttribute('data-id');
+                const inputElement = this.previousElementSibling;
+                const content = inputElement.value.trim();
+
+                if (content) {
+                    const result = addComment(postId, content);
+
+                    if (result.success) {
+                        inputElement.value = '';
+                        loadComments(postId);
+
+                        // Update comment count
+                        const commentCount = getComments(postId).length;
+                        const commentCountElement = document.querySelector(`.post-comment[data-id="${postId}"]`);
+                        if (commentCountElement) {
+                            commentCountElement.innerHTML = `<i class="fas fa-comment"></i> ${commentCount}`;
                         }
-                    });
-                });
-                
-                document.querySelectorAll('.add-comment-btn').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        const postId = this.getAttribute('data-id');
-                        const inputElement = this.previousElementSibling;
-                        const content = inputElement.value.trim();
-                        
-                        if (content) {
-                            const result = addComment(postId, content);
-                            
-                            if (result.success) {
-                                inputElement.value = '';
-                                loadComments(postId);
-                                
-                                // Update comment count
-                                const commentCount = getComments(postId).length;
-                                const commentCountElement = document.querySelector(`.post-comment[data-id="${postId}"]`);
-                                if (commentCountElement) {
-                                    commentCountElement.innerHTML = `<i class="fas fa-comment"></i> ${commentCount}`;
-                                }
-                            }
-                        }
-                    });
-                });
-                
-                document.querySelectorAll('.delete-post-btn').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        if (confirm('Are you sure you want to delete this post?')) {
-                            const postId = this.getAttribute('data-id');
-                            const result = deletePost(postId);
-                            
-                            if (result.success) {
-                                renderProfilePage(); // Reload profile page
-                            }
-                        }
-                    });
-                });
-            }
-        }
-        function renderFriendsPage() {
-            const mainContent = document.getElementById('mainContent');
-            
-            // Get all users except current user
-            const users = JSON.parse(localStorage.getItem('users'))
-                .filter(user => user.id !== currentUser.id);
-            
-            // Get current user's friends
-            const friends = getFriends();
-            const friendIds = friends.map(friend => friend.id);
-            
-            mainContent.innerHTML = `
+                    }
+                }
+            });
+        });
+
+        document.querySelectorAll('.delete-post-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                if (confirm('Are you sure you want to delete this post?')) {
+                    const postId = this.getAttribute('data-id');
+                    const result = deletePost(postId);
+
+                    if (result.success) {
+                        renderProfilePage(); // Reload profile page
+                    }
+                }
+            });
+        });
+    }
+}
+function renderFriendsPage() {
+    const mainContent = document.getElementById('mainContent');
+
+    // Get all users except current user
+    const users = JSON.parse(localStorage.getItem('users'))
+        .filter(user => user.id !== currentUser.id);
+
+    // Get current user's friends
+    const friends = getFriends();
+    const friendIds = friends.map(friend => friend.id);
+
+    mainContent.innerHTML = `
                 <div class="profile container fade-in">
                     <div class="form-container">
                         <h2 class="form-title">Your Friends</h2>
@@ -1093,124 +1097,124 @@
                                             <div class="friend-email">${user.email}</div>
                                         </div>
                                     </div>
-                                    ${friendIds.includes(user.id) ? 
-                                        `<button class="btn btn-sm" disabled>Friends</button>` : 
-                                        `<button class="btn btn-sm add-friend-btn" data-id="${user.id}">
+                                    ${friendIds.includes(user.id) ?
+            `<button class="btn btn-sm" disabled>Friends</button>` :
+            `<button class="btn btn-sm add-friend-btn" data-id="${user.id}">
                                             Add Friend
                                         </button>`
-                                    }
+        }
                                 </li>
                             `).join('')}
                         </ul>
                     </div>
                 </div>
             `;
-            
-            // Add event listeners to add friend buttons
-            document.querySelectorAll('.add-friend-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const userId = this.getAttribute('data-id');
-                    const result = sendFriendRequest(userId);
-                    
-                    const alert = document.getElementById('friendsAlert');
-                    alert.textContent = result.message;
-                    
-                    if (result.success) {
-                        alert.classList.remove('hidden', 'alert-danger');
-                        alert.classList.add('alert-success');
-                        
-                        // Refresh the page to show updated friend list
-                        setTimeout(() => {
-                            renderFriendsPage();
-                        }, 1000);
-                    } else {
-                        alert.classList.remove('hidden', 'alert-success');
-                        alert.classList.add('alert-danger');
-                    }
-                    
-                    setTimeout(() => {
-                        alert.classList.add('hidden');
-                    }, 3000);
-                });
-            });
-            
-            // Add event listeners to remove friend buttons
-            document.querySelectorAll('.remove-friend-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    if (confirm('Are you sure you want to remove this friend?')) {
-                        const userId = this.getAttribute('data-id');
-                        const result = removeFriend(userId);
-                        
-                        const alert = document.getElementById('friendsAlert');
-                        alert.textContent = result.message;
-                        
-                        if (result.success) {
-                            alert.classList.remove('hidden', 'alert-danger');
-                            alert.classList.add('alert-success');
-                            
-                            // Refresh the page to show updated friend list
-                            setTimeout(() => {
-                                renderFriendsPage();
-                            }, 1000);
-                        } else {
-                            alert.classList.remove('hidden', 'alert-success');
-                            alert.classList.add('alert-danger');
-                        }
-                        
-                        setTimeout(() => {
-                            alert.classList.add('hidden');
-                        }, 3000);
-                    }
-                });
-            });
-        }
-        // Navigation
-        function navigateTo(page) {
-            currentPage = page;
-            
-            // Check if user is logged in
-            if ((page === 'feed' || page === 'profile') && !currentUser) {
-                currentPage = 'login';
-            }
-            
-            // Render navbar
-            renderNavbar();
-            
-            // Render page content
-            switch (currentPage) {
-                case 'login':
-                    renderLoginPage();
-                    break;
-                case 'register':
-                    renderRegisterPage();
-                    break;
-                case 'feed':
-                    renderFeedPage();
-                    break;
-                case 'profile':
-                    renderProfilePage();
-                    break;
-                case 'friends':
+
+    // Add event listeners to add friend buttons
+    document.querySelectorAll('.add-friend-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const userId = this.getAttribute('data-id');
+            const result = sendFriendRequest(userId);
+
+            const alert = document.getElementById('friendsAlert');
+            alert.textContent = result.message;
+
+            if (result.success) {
+                alert.classList.remove('hidden', 'alert-danger');
+                alert.classList.add('alert-success');
+
+                // Refresh the page to show updated friend list
+                setTimeout(() => {
                     renderFriendsPage();
-                    break;
-                default:
-                    renderLoginPage();
-            }
-        }
-
-        // Initialize the app
-        function initApp() {
-            initializeStorage();
-            
-            // Check if user is already logged in
-            const storedUser = localStorage.getItem('currentUser');
-            if (storedUser) {
-                currentUser = JSON.parse(storedUser);
-                navigateTo('feed');
+                }, 1000);
             } else {
-                navigateTo('login');
+                alert.classList.remove('hidden', 'alert-success');
+                alert.classList.add('alert-danger');
             }
-        }
 
-        // Start the app
-        document.addEventListener('DOMContentLoaded', initApp);
+            setTimeout(() => {
+                alert.classList.add('hidden');
+            }, 3000);
+        });
+    });
+
+    // Add event listeners to remove friend buttons
+    document.querySelectorAll('.remove-friend-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            if (confirm('Are you sure you want to remove this friend?')) {
+                const userId = this.getAttribute('data-id');
+                const result = removeFriend(userId);
+
+                const alert = document.getElementById('friendsAlert');
+                alert.textContent = result.message;
+
+                if (result.success) {
+                    alert.classList.remove('hidden', 'alert-danger');
+                    alert.classList.add('alert-success');
+
+                    // Refresh the page to show updated friend list
+                    setTimeout(() => {
+                        renderFriendsPage();
+                    }, 1000);
+                } else {
+                    alert.classList.remove('hidden', 'alert-success');
+                    alert.classList.add('alert-danger');
+                }
+
+                setTimeout(() => {
+                    alert.classList.add('hidden');
+                }, 3000);
+            }
+        });
+    });
+}
+// Navigation
+function navigateTo(page) {
+    currentPage = page;
+
+    // Check if user is logged in
+    if ((page === 'feed' || page === 'profile') && !currentUser) {
+        currentPage = 'login';
+    }
+
+    // Render navbar
+    renderNavbar();
+
+    // Render page content
+    switch (currentPage) {
+        case 'login':
+            renderLoginPage();
+            break;
+        case 'register':
+            renderRegisterPage();
+            break;
+        case 'feed':
+            renderFeedPage();
+            break;
+        case 'profile':
+            renderProfilePage();
+            break;
+        case 'friends':
+            renderFriendsPage();
+            break;
+        default:
+            renderLoginPage();
+    }
+}
+
+// Initialize the app
+function initApp() {
+    initializeStorage();
+
+    // Check if user is already logged in
+    const storedUser = localStorage.getItem('currentUser');
+    if (storedUser) {
+        currentUser = JSON.parse(storedUser);
+        navigateTo('feed');
+    } else {
+        navigateTo('login');
+    }
+}
+
+// Start the app
+document.addEventListener('DOMContentLoaded', initApp);
