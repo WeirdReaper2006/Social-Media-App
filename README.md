@@ -8,7 +8,6 @@ ConnectMe is a lightweight social media web app built using C++ for backend logi
 - 📝 Post creation, deletion, and viewing
 - 💬 Commenting on posts
 - 👥 Friend system (send/request/accept friends)
-- 🔔 Notification system
 - 📁 File-based database (no SQL)
 - 📦 Organized OOP structure using C++ classes
 
